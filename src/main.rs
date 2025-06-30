@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // if empty line, jump to next
         if line == "" {continue;}
         // if line is date, save it for future tasks
-        if is_valid_date(line, "%d-%m-%Y") {
+        if is_valid_date(line, "%Y-%m-%d") {
             day = line.to_string();
             continue;
         }
