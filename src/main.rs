@@ -1,9 +1,8 @@
-use std::fs::{self, File};
+use std::fs;
 use std::error::Error;
-use std::path::Path;
 use chrono::NaiveDate;
-use csv::Writer;
 use regex::Regex;
+use rust_xlsxwriter::Workbook;
 
 fn is_valid_date(s: &str, format: &str) -> bool {
     NaiveDate::parse_from_str(s, format).is_ok()
@@ -33,21 +32,30 @@ fn parse_hours(s: String) -> String {
     return result_parts.join(".");
 }    
 
-fn write_csv(desktop_path: String, rows: Vec<Vec<String>>) -> Result<(), Box<dyn Error>> {
-    let csv_path = format!("{}\\{}", desktop_path, "\\hours.csv");
-    // If CSV file exists, open it in write mode. Otherwise, create and open it
-    let mut wtr = if Path::new(&csv_path).exists() {
-        Writer::from_path(csv_path)?
-    }
-    else { 
-        Writer::from_writer(File::create(csv_path)?)
-    };
-    // Write Headers 
-    wtr.write_record(&["SUMMARY", "HOURS", "DATE", "PROJECT"])?;
+fn write_xlsx(desktop_path: String, rows: Vec<Vec<String>>) -> Result<(), Box<dyn Error>> {
+    let xlsx_path = format!("{}\\{}", desktop_path, "\\hours.xlsx");
+
+    // Create a new workbook
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+
+    // Write Headers
+    worksheet.write_string(0, 0, "SUMMARY")?;
+    worksheet.write_string(0, 1, "HOURS")?;
+    worksheet.write_string(0, 2, "DATE")?;
+    worksheet.write_string(0, 3, "PROJECT")?;
+
     // Write every task
-    for row in rows {
-        wtr.write_record(row)?;
+    for (row_idx, row) in rows.iter().enumerate() {
+        let excel_row = (row_idx + 1) as u32;
+        for (col_idx, value) in row.iter().enumerate() {
+            worksheet.write_string(excel_row, col_idx as u16, value)?;
+        }
     }
+
+    // Save the workbook
+    workbook.save(&xlsx_path)?;
+
     Ok(())
 }
 
@@ -81,8 +89,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Add task to list of tasks to write into CSV 
         task_list.push(vec![description, hours, day.clone(), project]);
     }
-    // Write tasks into CSV
-    write_csv(desktop_path, task_list)?;
+    // Write tasks into XLSX
+    write_xlsx(desktop_path, task_list)?;
  
     Ok(())
 }
